@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astronomy Quick Reference</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a24;
+            --accent: #4a9eff; --accent2: #7c3aed; --text: #e4e4e7;
+            --text2: #a1a1aa; --success: #22c55e; --warning: #f59e0b;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+
+        /* Layout */
+        .app { display: grid; grid-template-columns: 220px 1fr 280px; height: 100vh; }
+        .sidebar { background: var(--surface); border-right: 1px solid #222; overflow-y: auto; padding: 12px; }
+        .main { overflow-y: auto; padding: 20px; }
+        .quickref { background: var(--surface); border-left: 1px solid #222; overflow-y: auto; padding: 12px; }
+
+        /* Search */
+        .search-container { position: sticky; top: 0; background: var(--bg); padding: 12px 0 16px; z-index: 100; }
+        #search { width: 100%; padding: 14px 18px; font-size: 18px; border: 2px solid var(--accent); border-radius: 8px; background: var(--surface); color: var(--text); outline: none; }
+        #search:focus { box-shadow: 0 0 0 3px rgba(74,158,255,0.3); }
+        .search-hint { font-size: 11px; color: var(--text2); margin-top: 6px; }
+        .search-hint kbd { background: var(--surface2); padding: 2px 6px; border-radius: 3px; font-family: inherit; }
+
+        /* Results */
+        .result { background: var(--surface); border-radius: 8px; padding: 14px; margin-bottom: 10px; cursor: pointer; border-left: 3px solid transparent; }
+        .result:hover { background: var(--surface2); border-left-color: var(--accent); }
+        .result-title { font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+        .result-section { font-size: 11px; color: var(--accent2); text-transform: uppercase; margin-bottom: 6px; }
+        .result-text { font-size: 13px; color: var(--text2); }
+        .result mark { background: #facc15; color: #000; padding: 0 2px; border-radius: 2px; }
+
+        /* Navigation */
+        .nav-title { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; margin: 16px 0 8px; letter-spacing: 0.5px; }
+        .nav-item { padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; }
+        .nav-item:hover { background: var(--surface2); }
+        .nav-item.active { background: var(--accent); color: #000; font-weight: 500; }
+        .nav-icon { font-size: 14px; }
+
+        /* Quick Reference Panel */
+        .qr-title { font-size: 13px; font-weight: 600; color: var(--accent); margin: 14px 0 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+        .qr-item { font-size: 12px; padding: 6px 8px; background: var(--surface2); border-radius: 4px; margin-bottom: 4px; }
+        .qr-item strong { color: var(--accent); }
+        .qr-formula { font-family: 'Courier New', monospace; background: #1e1e2e; padding: 8px; border-radius: 4px; margin-bottom: 6px; font-size: 12px; border-left: 2px solid var(--accent); }
+
+        /* Content Sections */
+        .section { display: none; }
+        .section.active { display: block; }
+        .section h2 { color: var(--accent); font-size: 22px; margin-bottom: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 8px; }
+        .section h3 { color: var(--warning); font-size: 16px; margin: 20px 0 10px; }
+        .section h4 { color: var(--text); font-size: 14px; margin: 14px 0 8px; }
+        .section p, .section li { font-size: 14px; margin-bottom: 8px; }
+        .section ul { padding-left: 20px; }
+        .section table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        .section th, .section td { border: 1px solid #333; padding: 8px; text-align: left; }
+        .section th { background: var(--surface2); color: var(--accent); }
+        .section tr:hover { background: var(--surface); }
+
+        /* Cards for objects */
+        .card { background: var(--surface); border-radius: 8px; padding: 16px; margin-bottom: 12px; border: 1px solid #222; }
+        .card-title { font-weight: 600; color: var(--accent); font-size: 16px; margin-bottom: 8px; }
+        .card-subtitle { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+        .card-stat { background: var(--surface2); padding: 8px; border-radius: 4px; }
+        .card-stat-label { font-size: 10px; color: var(--text2); text-transform: uppercase; }
+        .card-stat-value { font-size: 14px; font-weight: 500; }
+
+        /* Bookmarks */
+        .bookmark-btn { background: none; border: none; color: var(--text2); cursor: pointer; font-size: 16px; }
+        .bookmark-btn:hover, .bookmark-btn.active { color: var(--warning); }
+        .bookmarks-list { max-height: 200px; overflow-y: auto; }
+
+        /* Status bar */
+        .status { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid #222; padding: 6px 16px; font-size: 11px; color: var(--text2); display: flex; justify-content: space-between; }
+
+        /* Keyboard shortcuts modal */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--surface); border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; }
+        .modal h3 { margin-bottom: 16px; }
+        .shortcut { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #222; }
+        .shortcut:last-child { border: none; }
+
+        /* Responsive */
+        @media (max-width: 1200px) { .quickref { display: none; } .app { grid-template-columns: 200px 1fr; } }
+        @media (max-width: 800px) { .sidebar { display: none; } .app { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Left Sidebar - Navigation -->
+        <nav class="sidebar">
+            <div style="font-size: 18px; font-weight: 700; color: var(--accent); margin-bottom: 16px;">Astro Reference</div>
+
+            <div class="nav-title">Quick Access</div>
+            <div class="nav-item active" data-section="search-results"><span class="nav-icon">&#128269;</span> Search</div>
+            <div class="nav-item" data-section="formulas"><span class="nav-icon">&#128202;</span> Formulas</div>
+            <div class="nav-item" data-section="constants"><span class="nav-icon">&#128290;</span> Constants</div>
+            <div class="nav-item" data-section="bookmarks-section"><span class="nav-icon">&#11088;</span> Bookmarks</div>
+
+            <div class="nav-title">Topics</div>
+            <div class="nav-item" data-section="stellar-evolution"><span class="nav-icon">&#9733;</span> Stellar Evolution</div>
+            <div class="nav-item" data-section="stellar-class"><span class="nav-icon">&#127774;</span> Classification</div>
+            <div class="nav-item" data-section="hr-diagram"><span class="nav-icon">&#128200;</span> H-R Diagram</div>
+            <div class="nav-item" data-section="spectroscopy"><span class="nav-icon">&#127752;</span> Spectroscopy</div>
+            <div class="nav-item" data-section="orbital"><span class="nav-icon">&#128640;</span> Orbital Mechanics</div>
+            <div class="nav-item" data-section="distance"><span class="nav-icon">&#128207;</span> Distance Methods</div>
+            <div class="nav-item" data-section="exoplanets"><span class="nav-icon">&#127759;</span> Exoplanets</div>
+            <div class="nav-item" data-section="detection"><span class="nav-icon">&#128301;</span> Detection Methods</div>
+            <div class="nav-item" data-section="nebulae"><span class="nav-icon">&#127756;</span> Nebulae</div>
+            <div class="nav-item" data-section="dso"><span class="nav-icon">&#128171;</span> DSO Catalog</div>
+            <div class="nav-item" data-section="variables"><span class="nav-icon">&#10024;</span> Variable Stars</div>
+            <div class="nav-item" data-section="supernovae"><span class="nav-icon">&#128165;</span> Supernovae</div>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="main">
+            <div class="search-container">
+                <input type="text" id="search" placeholder="Search anything... (press / to focus)" autofocus>
+                <div class="search-hint">
+                    <kbd>/</kbd> Focus search &nbsp; <kbd>Esc</kbd> Clear &nbsp; <kbd>?</kbd> Shortcuts &nbsp; <kbd>1-9</kbd> Quick nav
+                </div>
+            </div>
+
+            <div id="content">
+                <!-- Search Results (default view) -->
+                <div id="search-results" class="section active">
+                    <h2>Search Results</h2>
+                    <div id="results-container">
+                        <p style="color: var(--text2);">Start typing to search across all your notes. Try: "Kepler", "transit", "WASP", "parallax"...</p>
+                    </div>
+                </div>
+
+                <!-- Formulas Section -->
+                <div id="formulas" class="section">
+                    <h2>Essential Formulas</h2>
+                    <!-- Content will be added in next part -->
+                </div>
+
+                <!-- Constants Section -->
+                <div id="constants" class="section">
+                    <h2>Constants & Units</h2>
+                </div>
+
+                <!-- Other sections will be added -->
+                <div id="stellar-evolution" class="section"><h2>Stellar Evolution</h2></div>
+                <div id="stellar-class" class="section"><h2>Stellar Classification</h2></div>
+                <div id="hr-diagram" class="section"><h2>H-R Diagram</h2></div>
+                <div id="spectroscopy" class="section"><h2>Spectroscopy</h2></div>
+                <div id="orbital" class="section"><h2>Orbital Mechanics</h2></div>
+                <div id="distance" class="section"><h2>Distance Methods</h2></div>
+                <div id="exoplanets" class="section"><h2>Exoplanets</h2></div>
+                <div id="detection" class="section"><h2>Detection Methods</h2></div>
+                <div id="nebulae" class="section"><h2>Nebulae</h2></div>
+                <div id="dso" class="section"><h2>DSO Catalog</h2></div>
+                <div id="variables" class="section"><h2>Variable Stars</h2></div>
+                <div id="supernovae" class="section"><h2>Supernovae</h2></div>
+                <div id="bookmarks-section" class="section"><h2>Bookmarks</h2><div class="bookmarks-list" id="bookmarks-display"></div></div>
+            </div>
+        </main>
+
+        <!-- Right Panel - Quick Reference -->
+        <aside class="quickref">
+            <div style="font-weight: 600; margin-bottom: 12px;">Quick Reference</div>
+
+            <div class="qr-title">Key Formulas</div>
+            <div class="qr-formula">d = 1/p <span style="color:var(--text2)">(parallax)</span></div>
+            <div class="qr-formula">m - M = 5log(d) - 5</div>
+            <div class="qr-formula">P^2 = a^3 <span style="color:var(--text2)">(Kepler 3)</span></div>
+            <div class="qr-formula">L = 4piR^2 sigma T^4</div>
+            <div class="qr-formula">lambda_max = b/T <span style="color:var(--text2)">(Wien)</span></div>
+            <div class="qr-formula">v = H_0 * d <span style="color:var(--text2)">(Hubble)</span></div>
+
+            <div class="qr-title">Spectral Types</div>
+            <div class="qr-item"><strong>O</strong> 30-60k K Blue</div>
+            <div class="qr-item"><strong>B</strong> 10-30k K Blue-White</div>
+            <div class="qr-item"><strong>A</strong> 7.5-10k K White</div>
+            <div class="qr-item"><strong>F</strong> 6-7.5k K White</div>
+            <div class="qr-item"><strong>G</strong> 5-6k K Yellow</div>
+            <div class="qr-item"><strong>K</strong> 3.5-5k K Orange</div>
+            <div class="qr-item"><strong>M</strong> 2-3.5k K Red</div>
+
+            <div class="qr-title">Luminosity Classes</div>
+            <div class="qr-item"><strong>I</strong> Supergiants</div>
+            <div class="qr-item"><strong>II</strong> Bright Giants</div>
+            <div class="qr-item"><strong>III</strong> Giants</div>
+            <div class="qr-item"><strong>IV</strong> Subgiants</div>
+            <div class="qr-item"><strong>V</strong> Main Sequence</div>
+            <div class="qr-item"><strong>D</strong> White Dwarfs</div>
+
+            <div class="qr-title">Constants</div>
+            <div class="qr-item"><strong>G</strong> 6.67e-11 Nm^2/kg^2</div>
+            <div class="qr-item"><strong>c</strong> 3e8 m/s</div>
+            <div class="qr-item"><strong>sigma</strong> 5.67e-8 W/m^2K^4</div>
+            <div class="qr-item"><strong>b</strong> 2900 um*K (Wien)</div>
+            <div class="qr-item"><strong>H_0</strong> ~70 km/s/Mpc</div>
+            <div class="qr-item"><strong>1 pc</strong> = 3.26 ly</div>
+            <div class="qr-item"><strong>1 AU</strong> = 1.5e8 km</div>
+        </aside>
+    </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div class="modal" id="shortcuts-modal">
+        <div class="modal-content">
+            <h3>Keyboard Shortcuts</h3>
+            <div class="shortcut"><span>Focus search</span><kbd>/</kbd></div>
+            <div class="shortcut"><span>Clear search / Close modal</span><kbd>Esc</kbd></div>
+            <div class="shortcut"><span>Show shortcuts</span><kbd>?</kbd></div>
+            <div class="shortcut"><span>Formulas</span><kbd>F</kbd></div>
+            <div class="shortcut"><span>Constants</span><kbd>C</kbd></div>
+            <div class="shortcut"><span>Exoplanets</span><kbd>E</kbd></div>
+            <div class="shortcut"><span>H-R Diagram</span><kbd>H</kbd></div>
+            <div class="shortcut"><span>Stellar Evolution</span><kbd>S</kbd></div>
+            <div class="shortcut"><span>Navigate sections</span><kbd>1-9</kbd></div>
+            <div style="margin-top: 16px; text-align: center;">
+                <button onclick="document.getElementById('shortcuts-modal').classList.remove('active')" style="padding: 8px 24px; background: var(--accent); border: none; border-radius: 6px; cursor: pointer;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="status">
+        <span>Science Olympiad Astronomy Reference Tool</span>
+        <span id="status-text">Ready - Works 100% Offline</span>
+    </div>
+
+<script>
+// ============ SEARCH DATA ============
+const searchData = [
+// STELLAR EVOLUTION
+{id:"se1",title:"Stellar Lifecycle Stages",section:"Stellar Evolution",tags:"star life cycle formation death",text:"Giant Gas Cloud → Protostar → T-Tauri Phase → Main Sequence → Red Giant → Fusion of heavier elements → Supernova or Planetary Nebula"},
+{id:"se2",title:"Protostar",section:"Stellar Evolution",tags:"formation young",text:"A collapsing gas cloud, still too cool for fusion, but heating up. Fusion has not yet begun."},
+{id:"se3",title:"T-Tauri Stars",section:"Stellar Evolution",tags:"young pre-main sequence variable",text:"Young stars <2 solar masses, not yet fusing hydrogen. Exhibit strong solar winds and variability in brightness. Strong magnetic fields, accretion disks."},
+{id:"se4",title:"Main Sequence",section:"Stellar Evolution",tags:"hydrogen fusion stable",text:"The stable phase where hydrogen is fused into helium in the core. Lifetimes: High-mass (~120 M☉): ~2 million years. Low-mass (~0.08 M☉): ~13 billion years."},
+{id:"se5",title:"Red Giant",section:"Stellar Evolution",tags:"expansion helium",text:"When hydrogen is depleted, the star expands, and helium begins to fuse into heavier elements (carbon, oxygen)."},
+{id:"se6",title:"Stellar Remnants",section:"Stellar Evolution",tags:"death white dwarf neutron star black hole",text:"White Dwarfs: Dense remnants of low-mass stars. Neutron Stars: Extremely dense (~20km diameter, ~1 million tons/cm³), 1.4-3.2 M☉ core. Black Holes: >3.2 M☉ core, >25 solar mass stars."},
+{id:"se7",title:"Herbig-Haro Objects",section:"Stellar Evolution",tags:"jets protostar emission",text:"Glowing regions formed when jets of gas from protostars collide with surrounding gas and dust at high speeds. Example: HH 7-11 in NGC 1333."},
+{id:"se8",title:"Herbig Ae/Be Stars",section:"Stellar Evolution",tags:"intermediate mass pre-main sequence",text:"Intermediate-mass pre-main-sequence stars (2-8 solar masses). Exhibit emission lines, often associated with reflection nebulae."},
+
+// STELLAR CLASSIFICATION
+{id:"sc1",title:"Spectral Types OBAFGKM",section:"Classification",tags:"temperature color mnemonic",text:"O: 30-60k K Blue | B: 10-30k K Blue-White | A: 7.5-10k K White | F: 6-7.5k K White | G: 5-6k K Yellow | K: 3.5-5k K Orange | M: 2-3.5k K Red. Mnemonic: Oh Be A Fine Girl/Guy Kiss Me"},
+{id:"sc2",title:"Luminosity Classes (Yerkes)",section:"Classification",tags:"giant supergiant dwarf",text:"0/Ia: Hypergiant | Ia: Luminous Supergiant | Iab: Intermediate | Ib: Less luminous supergiant | II: Bright Giant | III: Giant | IV: Subgiant | V: Main Sequence (Dwarf) | D: White Dwarf"},
+{id:"sc3",title:"Hydrogen Lines by Type",section:"Classification",tags:"balmer absorption",text:"O: Weak H | B: Medium H | A: Strong H (Balmer prominent) | F: Medium H | G: Weak H | K: Very Weak H | M: Very Weak H"},
+
+// H-R DIAGRAM
+{id:"hr1",title:"H-R Diagram Overview",section:"H-R Diagram",tags:"hertzsprung russell luminosity temperature",text:"X-axis: Temperature/Spectral Class (hot O left, cool M right). Y-axis: Luminosity/Absolute Magnitude (dim bottom, bright top). Developed 1914 by Henry Norris Russell and Ejnar Hertzsprung."},
+{id:"hr2",title:"H-R Diagram Regions",section:"H-R Diagram",tags:"main sequence giants",text:"Main Sequence: diagonal band, H fusion. Giants/Supergiants: upper right, cooler but luminous. White Dwarfs: lower left, hot but dim."},
+{id:"hr3",title:"Magnitude Scale",section:"H-R Diagram",tags:"brightness absolute apparent",text:"-10 magnitude = 1 million times brighter than Sun. +20 magnitude = 1 million times dimmer than Sun."},
+
+// FORMULAS
+{id:"f1",title:"Stefan-Boltzmann Law (Luminosity)",section:"Formulas",tags:"radiation temperature radius",text:"L = 4πR²σT⁴ where L=luminosity, R=radius, T=temperature, σ=5.67×10⁻⁸ W/m²K⁴ (Stefan-Boltzmann constant)"},
+{id:"f2",title:"Wien's Displacement Law",section:"Formulas",tags:"peak wavelength temperature color",text:"λ_max = b/T where b=2900 μm·K. Hotter objects peak at shorter (bluer) wavelengths. Example: Sun (5778K) peaks at 502nm (yellow-green)."},
+{id:"f3",title:"Parallax Distance Formula",section:"Formulas",tags:"arcsecond parsec triangulation",text:"d = 1/p where d is distance in parsecs, p is parallax angle in arcseconds. Only effective for stars <1000 parsecs."},
+{id:"f4",title:"Distance Modulus",section:"Formulas",tags:"apparent absolute magnitude",text:"m - M = 5log₁₀(d) - 5 OR d = 10^((m-M+5)/5) where m=apparent magnitude, M=absolute magnitude, d=distance in parsecs"},
+{id:"f5",title:"Kepler's Third Law",section:"Formulas",tags:"orbital period semi-major axis",text:"P² = a³ (when P in years, a in AU, mass in solar masses). Full form: P² = (4π²/GM)a³. For binary: M_A + M_B = a³/P²"},
+{id:"f6",title:"Newton's Law of Gravitation",section:"Formulas",tags:"force mass gravity",text:"F = Gm₁m₂/r² where G=6.67×10⁻¹¹ N·m²/kg²"},
+{id:"f7",title:"Orbital Velocity",section:"Formulas",tags:"circular speed",text:"v = √(GM/r) where M=central body mass, r=orbital radius"},
+{id:"f8",title:"Escape Velocity",section:"Formulas",tags:"escape speed gravity",text:"v_escape = √(2GM/r)"},
+{id:"f9",title:"Hubble's Law",section:"Formulas",tags:"redshift expansion velocity distance",text:"v = H₀d where v=recessional velocity, H₀≈70 km/s/Mpc, d=distance. Use z (redshift) to find v: v ≈ zc for low z"},
+{id:"f10",title:"Transit Depth Formula",section:"Formulas",tags:"exoplanet radius star",text:"ΔF/F₀ = (R_p/R_s)² where R_p=planet radius, R_s=star radius. Transit depth gives planet size."},
+{id:"f11",title:"Radial Velocity Mass Formula",section:"Formulas",tags:"doppler exoplanet",text:"PK³/2πG = (M_e sin α)³/M_s² where P=period, K=velocity amplitude, gives minimum planet mass"},
+{id:"f12",title:"Exoplanet Temperature",section:"Formulas",tags:"equilibrium albedo",text:"T_e = ⁴√(R_s²T_s⁴(1-A)/4D²) where A=albedo, D=distance from star. Greenhouse effect raises actual temp."},
+{id:"f13",title:"Centripetal Acceleration",section:"Formulas",tags:"circular motion",text:"a_c = v²/r = rω² where v=tangential velocity, r=radius, ω=angular velocity"},
+{id:"f14",title:"Angular Velocity",section:"Formulas",tags:"rotation rate",text:"ω = Δθ/Δt (rate of rotation in radians per second)"},
+
+// CONSTANTS
+{id:"c1",title:"Gravitational Constant G",section:"Constants",tags:"newton gravity",text:"G = 6.67 × 10⁻¹¹ N·m²/kg²"},
+{id:"c2",title:"Speed of Light c",section:"Constants",tags:"electromagnetic",text:"c = 3 × 10⁸ m/s = 299,792 km/s"},
+{id:"c3",title:"Stefan-Boltzmann Constant σ",section:"Constants",tags:"radiation blackbody",text:"σ = 5.67 × 10⁻⁸ W/m²K⁴"},
+{id:"c4",title:"Wien's Constant b",section:"Constants",tags:"wavelength peak",text:"b = 2900 μm·K = 2.9 × 10⁻³ m·K"},
+{id:"c5",title:"Hubble Constant H₀",section:"Constants",tags:"expansion universe",text:"H₀ ≈ 70 km/s/Mpc (value disputed, 67-74 range)"},
+{id:"c6",title:"Parsec",section:"Constants",tags:"distance unit",text:"1 parsec = 3.26 light years = 3.086 × 10¹⁶ m = 206,265 AU"},
+{id:"c7",title:"Astronomical Unit AU",section:"Constants",tags:"distance earth sun",text:"1 AU = 1.496 × 10⁸ km = Earth-Sun average distance"},
+{id:"c8",title:"Light Year",section:"Constants",tags:"distance unit",text:"1 ly = 9.461 × 10¹² km = distance light travels in 1 year"},
+{id:"c9",title:"Solar Mass M☉",section:"Constants",tags:"sun unit",text:"M☉ = 1.989 × 10³⁰ kg"},
+{id:"c10",title:"Solar Radius R☉",section:"Constants",tags:"sun unit",text:"R☉ = 6.96 × 10⁸ m"},
+{id:"c11",title:"Solar Luminosity L☉",section:"Constants",tags:"sun unit brightness",text:"L☉ = 3.83 × 10²⁶ W"},
+{id:"c12",title:"Solar Temperature T☉",section:"Constants",tags:"sun effective",text:"T☉ = 5778 K (effective temperature)"},
+{id:"c13",title:"Chandrasekhar Limit",section:"Constants",tags:"white dwarf mass supernova",text:"1.4 solar masses - maximum mass for white dwarf. Exceeding causes Type Ia supernova."},
+{id:"c14",title:"Angstrom",section:"Constants",tags:"wavelength unit",text:"1 Å = 10⁻¹⁰ m = 0.1 nm. Used for spectral wavelengths."},
+
+// DISTANCE METHODS
+{id:"d1",title:"Parallax Method",section:"Distance Methods",tags:"triangulation arcsecond",text:"Measures shift in star's position over 6 months (Earth moves 2 AU). d=1/p (parsecs). Effective <1000 pc. Smaller angle = farther distance."},
+{id:"d2",title:"Spectroscopic Parallax",section:"Distance Methods",tags:"spectrum luminosity",text:"1) Measure apparent magnitude m. 2) Find spectral type → estimate absolute magnitude M. 3) Use distance modulus: d=10^((m-M+5)/5). Works to several kiloparsecs."},
+{id:"d3",title:"Standard Candles",section:"Distance Methods",tags:"cepheid rr lyrae type ia",text:"Objects with known luminosity. Cepheids: period-luminosity relation, up to 108 Mly. RR Lyrae: M≈0.75, good for nearby. Type Ia SNe: same brightness, intergalactic distances."},
+{id:"d4",title:"Cepheid Variables",section:"Distance Methods",tags:"period luminosity pulsating",text:"Longer period = higher luminosity. Type I (Classical): brighter, Pop I. Type II (W Virginis): dimmer, Pop II. Pulsate via kappa-mechanism."},
+{id:"d5",title:"RR Lyrae Variables",section:"Distance Methods",tags:"period luminosity globular",text:"Older, fainter than Cepheids. Periods <1 day. Mass ~0.5 M☉. Absolute magnitude ≈ 0.75. Common in globular clusters. Blazhko effect: period modulation."},
+
+// DETECTION METHODS
+{id:"dm1",title:"Transit Method",section:"Detection Methods",tags:"exoplanet photometry dip",text:"Detects brightness dip when planet crosses star. Gives: planet RADIUS (from depth), orbital period. Requires inclination ~90°. Limb darkening affects curve."},
+{id:"dm2",title:"Radial Velocity (Doppler)",section:"Detection Methods",tags:"exoplanet wobble spectrum",text:"Measures star's wobble via spectral shift. Blueshift=approaching, Redshift=receding. Gives: MINIMUM MASS (m sin i), period. Best for massive close-in planets (Hot Jupiters)."},
+{id:"dm3",title:"Direct Imaging",section:"Detection Methods",tags:"exoplanet coronagraph infrared",text:"Photographs exoplanet by blocking starlight (coronagraph/starshade). Usually infrared (young planets emit heat). Gives: temperature, composition, atmosphere. Best for young, large planets with wide orbits."},
+{id:"dm4",title:"Transit vs Radial Velocity",section:"Detection Methods",tags:"comparison",text:"Transit: gives RADIUS, needs aligned orbit. RV: gives MASS, works any inclination but gives minimum. Combined: get DENSITY and true mass."},
+
+// EXOPLANETS
+{id:"ex1",title:"HD 80606b",section:"Exoplanets",tags:"hot jupiter eccentric",text:"217 ly, Ursa Major. e=0.93 (extremely eccentric like Halley's Comet!). 4 Jupiter masses. Periastron 0.03 AU (T>1500K), Apastron 0.88 AU (T<500K). Period 111.4 days. Kozai-Lidov oscillations from companion HD 80607."},
+{id:"ex2",title:"WASP-17b",section:"Exoplanets",tags:"hot jupiter puffy retrograde",text:"1300 ly, Scorpius. RETROGRADE orbit (opposite star rotation). 2x Jupiter size but 0.5x mass - extremely puffy (0.06 g/cm³). T=1300-1500K. Period 3.7 days. Discovered 2009 by transit."},
+{id:"ex3",title:"WASP-121b",section:"Exoplanets",tags:"hot jupiter ultra-hot atmosphere",text:"850 ly, Puppis. Ultra-hot (2500-3000K day side). Tidally locked. Period 1.27 days (~30 hours). 1.18 M_J, 1.81 R_J. Atmosphere escaping (comet-like tail). Has water vapor, CO, metal ions, VO, TiO. Temperature inversion in stratosphere."},
+{id:"ex4",title:"LTT 9779b",section:"Exoplanets",tags:"ultra-hot neptune reflective tess",text:"260 ly, Sculptor. Ultra-hot Neptune. 29 Earth masses, 4.7 Earth radii. Period 19 hours. T~2000K. Albedo 0.8 (very reflective!). Discovered 2020 by TESS. Surprising it retained atmosphere."},
+{id:"ex5",title:"GJ 1214b",section:"Exoplanets",tags:"sub-neptune mini-neptune water",text:"40 ly, Ophiuchus. Sub/Mini-Neptune. 6.26 Earth masses, 2.68 Earth radii. Period 1.58 days. T=400-500K. Thick haze/cloud layer obscures spectrum. Discovered 2009 by MEarth. Tidally locked."},
+{id:"ex6",title:"K2-18b",section:"Exoplanets",tags:"habitable zone water vapor",text:"124 ly, Leo. Mini-Neptune in HABITABLE ZONE. 8.92 Earth masses, 2.6 Earth radii. Period 33 days. T~265K (Earth-like!). First habitable-zone planet with detected water vapor. Discovered 2015 K2 mission."},
+{id:"ex7",title:"TOI-270b",section:"Exoplanets",tags:"super earth tess",text:"Super-Earth orbiting M-type star. 1.58 Earth masses. Period 2.4 days. Orbit radius 0.032 AU. Discovered 2019 by TESS."},
+{id:"ex8",title:"LHS 3844b",section:"Exoplanets",tags:"super earth tidally locked tess",text:"49 ly, Indus. Rocky super-Earth. 1.303 Earth radii. Period 0.5 days (11 hours). Tidally locked. Discovered 2018 by TESS."},
+{id:"ex9",title:"PSR B1257+12",section:"Exoplanets",tags:"pulsar planet",text:"First confirmed exoplanets (1992). Orbits a PULSAR (undead star). Planet b: 0.02 Earth masses, period 25.3 days, 0.19 AU."},
+{id:"ex10",title:"WD 1856+534 b",section:"Exoplanets",tags:"white dwarf gas giant",text:"81 ly. Gas giant orbiting white dwarf (K-type star). 13.8 Jupiter masses. Period 1.4 days. 0.02 AU. Found 2020."},
+{id:"ex11",title:"55 Cancri e",section:"Exoplanets",tags:"super earth hot lava",text:"41 ly. Super-Earth, extremely hot (4400°F). Radius 1.875 Earth."},
+{id:"ex12",title:"Kepler-62 System",section:"Exoplanets",tags:"habitable zone multi-planet",text:"1200 ly, Lyra. 5 planets around K2 dwarf (2/3 Sun size). TWO planets in habitable zone. Smallest known habitable zone exoplanets. Planets named b,c,d,e,f."},
+{id:"ex13",title:"AU Microscopii b",section:"Exoplanets",tags:"young debris disk neptune",text:"32 ly. Young Neptune-like planet. 20.12 Earth masses. Period 8.5 days. Among youngest planetary systems observed. Green appearance due to short-wavelength light output."},
+{id:"ex14",title:"Epsilon Eridani",section:"Exoplanets",tags:"nearby sun-like young",text:"10.5 ly. Third closest naked-eye star. Young Sun-like star - excellent for studying planet formation around Sun-like stars."},
+{id:"ex15",title:"Exoplanet Types",section:"Exoplanets",tags:"classification gas giant terrestrial",text:"Gas Giants: mostly H/He (Jupiter-like). Ice Giants/Neptunes: H/He/methane. Sub-Neptunes: rocky, lost H envelope. Super-Earths: >Earth, <ice giant. Terrestrial: rocky with solid surface."},
+{id:"ex16",title:"Hot Jupiter",section:"Exoplanets",tags:"gas giant close-in",text:"Gas giants orbiting very close to their star. Short periods (days). Often tidally locked. May have migrated inward. Examples: HD 80606b, WASP-17b, WASP-121b."},
+
+// NEBULAE
+{id:"n1",title:"Orion Nebula (M42)",section:"Nebulae",tags:"emission hii star formation trapezium",text:"1344 ly, Orion constellation. Apparent mag +4.0 (naked eye). 24 ly across. Mass 2000 M☉. Diffuse nebula and H II region. Trapezium Cluster: 4 massive young stars ionize gas. Over 150 proplyds observed. Part of Orion Molecular Cloud."},
+{id:"n2",title:"Trapezium Cluster",section:"Nebulae",tags:"orion young stars ionization",text:"4 massive young stars at Orion Nebula's core. Responsible for ionizing surrounding gas (H-alpha emission). Part of Orion Nebula Cluster (ONC) with 2000+ stars."},
+{id:"n3",title:"30 Doradus (Tarantula Nebula)",section:"Nebulae",tags:"lmc star formation r136",text:"160,000 ly, in Large Magellanic Cloud. ~1000 ly across - largest most active star-forming region in Local Group. Giant H II region. Contains R136 cluster with stars >100 M☉ including R136a1."},
+{id:"n4",title:"R136 Cluster",section:"Nebulae",tags:"tarantula massive stars",text:"Dense cluster in Tarantula Nebula. Stars >100 solar masses. R136a1: one of most luminous/massive stars known. Cluster only few million years old."},
+{id:"n5",title:"Carina Nebula (NGC 3372)",section:"Nebulae",tags:"star formation emission reflection",text:"Massive star-forming complex. Contains: Emission nebula (red, heated gas), Reflection nebula (blue, scattered UV), Absorption nebula (dark molecular clouds)."},
+{id:"n6",title:"NGC 1333",section:"Nebulae",tags:"reflection star formation perseus",text:"~1000 ly, Perseus. Reflection nebula. Blue scattered light from young stars. Red HH object emissions. Hundreds of young stars <1 million years. Contains HH 7-11."},
+{id:"n7",title:"Nebula Types",section:"Nebulae",tags:"emission reflection absorption planetary",text:"Emission: ionized gas emits light (H II regions, red). Reflection: dust reflects starlight (blue). Absorption/Dark: dense dust blocks light. Planetary: dying star's outer layers (not planets!)."},
+{id:"n8",title:"Molecular Clouds",section:"Nebulae",tags:"star formation cold dense",text:"Cold, dense gas clouds (H₂). Birthplace of stars. UV from young stars ionizes gas → H II regions. Example: Orion Molecular Cloud."},
+{id:"n9",title:"Bok Globules",section:"Nebulae",tags:"dark dense protostar",text:"Small, dense, dark cloud clumps within molecular clouds. Can form protostars if sufficient mass collapses. Example: Caterpillar Bok globule."},
+
+// VARIABLE STARS
+{id:"v1",title:"Cepheid Variables",section:"Variable Stars",tags:"period luminosity distance pulsating",text:"Period-luminosity relation: longer period = higher luminosity. Type I (Classical): brighter, Pop I, 1-50 day periods. Type II (W Virginis): dimmer, Pop II. Pulsate via kappa-mechanism. Standard candles for distance."},
+{id:"v2",title:"RR Lyrae Variables",section:"Variable Stars",tags:"period luminosity globular cluster",text:"Older, fainter than Cepheids. Periods <1 day. Absolute magnitude ~0.75 (constant!). Common in globular clusters. Pop II stars. Blazhko effect = period modulation."},
+{id:"v3",title:"Mira Variables",section:"Variable Stars",tags:"long period red giant agb",text:"Asymptotic Giant Branch (AGB) red giants. Amplitude 2-11 magnitudes. Long periods. Prototype: Omicron Ceti (Mira). Whole star expands/contracts."},
+{id:"v4",title:"Intrinsic vs Extrinsic Variables",section:"Variable Stars",tags:"types classification",text:"Intrinsic: vary due to internal changes (pulsating, erupting). Extrinsic: vary due to external factors (eclipsing binaries, rotating with spots)."},
+{id:"v5",title:"LBV (Luminous Blue Variables)",section:"Variable Stars",tags:"massive outburst eta carinae",text:"Massive stars with erratic outbursts. Example: Eta Carinae."},
+{id:"v6",title:"Yellow Hypergiants (YHG)",section:"Variable Stars",tags:"bright semi-regular dusty",text:"Bright, semi-regular variables with dusty outbursts."},
+{id:"v7",title:"Delta Scuti / Gamma Doradus",section:"Variable Stars",tags:"short period pulsating",text:"Short-period pulsating stars."},
+{id:"v8",title:"Flare Stars",section:"Variable Stars",tags:"sudden violent brightness",text:"Sudden, violent brightness increases. Example: Proxima Centauri."},
+{id:"v9",title:"White Dwarf Variables",section:"Variable Stars",tags:"zz ceti pulsating",text:"DAV (ZZ Ceti): H-rich, short-period pulsators. DB: He-rich, hotter. PG 1159: extremely hot pre-white dwarfs."},
+
+// SUPERNOVAE
+{id:"sn1",title:"Type Ia Supernova",section:"Supernovae",tags:"white dwarf chandrasekhar standard candle",text:"White dwarf exceeds Chandrasekhar limit (1.4 M☉) in binary system. No hydrogen lines, strong silicon absorption. ALL SAME BRIGHTNESS - standard candles for cosmic distances."},
+{id:"sn2",title:"Type II Supernova",section:"Supernovae",tags:"core collapse massive iron",text:"Massive star (≥8 M☉) can't fuse iron → core collapse. Creates heavy elements (Z>26). Leaves neutron star (1.4-3.2 M☉) or black hole (>3.2 M☉). Has hydrogen lines."},
+{id:"sn3",title:"Type Ib/Ic Supernova",section:"Supernovae",tags:"core collapse no hydrogen",text:"Same core-collapse as Type II but star lost hydrogen envelope. Ib: no H lines. Ic: no H or He lines."},
+{id:"sn4",title:"Supernova vs Nova",section:"Supernovae",tags:"difference explosion",text:"Supernova: star destroyed, huge energy release. Nova: smaller explosion, star survives (white dwarf in binary)."},
+{id:"sn5",title:"Supernova Remnants",section:"Supernovae",tags:"heavy elements distribution",text:"Supernovae distribute heavy elements across galaxy. Enrich interstellar medium for future star/planet formation."},
+
+// SPECTROSCOPY
+{id:"sp1",title:"Spectroscopy Basics",section:"Spectroscopy",tags:"light wavelength prism",text:"Breaks light into components to analyze composition, temperature, motion. Prism or diffraction grating splits light into spectrum."},
+{id:"sp2",title:"Absorption Spectrum",section:"Spectroscopy",tags:"dark lines elements",text:"Dark lines where atoms absorb specific wavelengths. Each element has unique fingerprint. Fraunhofer/Kirchhoff discovered in sunlight (19th century)."},
+{id:"sp3",title:"Emission Spectrum",section:"Spectroscopy",tags:"bright lines elements",text:"Bright lines from re-emitted light. Identifies elements. Hot gas emits characteristic wavelengths."},
+{id:"sp4",title:"Doppler Effect",section:"Spectroscopy",tags:"redshift blueshift velocity motion",text:"Blueshift: approaching (shorter wavelength). Redshift: receding (longer wavelength). Used for: radial velocity, galaxy recession, exoplanet detection."},
+{id:"sp5",title:"Key Emission Lines",section:"Spectroscopy",tags:"oxygen sulfur nitrogen hydrogen",text:"H-alpha: hydrogen (red). [O III]: oxygen. [S II]: sulfur. [N II]: nitrogen. Balmer series: H transitions to n=2."},
+{id:"sp6",title:"Transmission Spectroscopy",section:"Spectroscopy",tags:"exoplanet atmosphere transit",text:"During transit, starlight passes through planet atmosphere. Gases absorb specific wavelengths → reveals atmospheric composition."},
+{id:"sp7",title:"Spectrographs",section:"Spectroscopy",tags:"instruments ccd",text:"Advanced instruments: UVES, CRIRES, FLAMES, VIMOS, KMOS, MUSE, SINFONI, X-shooter. Use CCD detectors. Higher resolution = more detail."},
+
+// ORBITAL MECHANICS
+{id:"o1",title:"Kepler's First Law",section:"Orbital Mechanics",tags:"ellipse focus",text:"Planets orbit in ellipses with Sun at one focus. Semi-major axis (a): half longest diameter. Semi-minor axis (b): half shortest. Eccentricity e=c/a (0=circle, →1=elongated)."},
+{id:"o2",title:"Kepler's Second Law",section:"Orbital Mechanics",tags:"equal areas speed",text:"Planet sweeps equal areas in equal times. Faster at perihelion (closest), slower at aphelion (farthest)."},
+{id:"o3",title:"Kepler's Third Law",section:"Orbital Mechanics",tags:"period semi-major axis mass",text:"P² = a³ (P in years, a in AU). With mass: P² = a³/M. Binary: M_A + M_B = a³/P². Relates orbital period to distance."},
+{id:"o4",title:"Perihelion and Aphelion",section:"Orbital Mechanics",tags:"closest farthest orbit",text:"Periapsis/Perihelion: closest point to central body. R_p = a(1-e). Apoapsis/Aphelion: farthest point. R_a = a(1+e)."},
+{id:"o5",title:"Eccentricity",section:"Orbital Mechanics",tags:"orbit shape ellipse",text:"e = c/a where c = focus-to-center distance. e=0: circle. e→1: elongated ellipse. Earth: e≈0.017. HD 80606b: e=0.93!"},
+{id:"o6",title:"Binary Star Systems",section:"Orbital Mechanics",tags:"barycenter mass ratio",text:"Both stars orbit common center of mass (barycenter). m_a/m_b = r_b/r_a. Same period, opposite sides."},
+{id:"o7",title:"Tidal Locking",section:"Orbital Mechanics",tags:"synchronous rotation",text:"Same side always faces central body (rotation period = orbital period). One side permanent day, other permanent night. Common in close-in exoplanets."},
+
+// POPULATIONS
+{id:"p1",title:"Stellar Populations",section:"Populations",tags:"metallicity age",text:"Pop I: high metals, young, spiral arms, open clusters. Pop II: low metals, old, galactic core, globular clusters, elliptical galaxies. Pop III: first stars, no metals (theoretical)."},
+
+// UNITS
+{id:"u1",title:"Arcseconds and Arcminutes",section:"Units",tags:"angle measurement",text:"1 degree = 60 arcminutes. 1 arcminute = 60 arcseconds. Moon ≈ 1800 arcseconds across."},
+{id:"u2",title:"Parsec Definition",section:"Units",tags:"distance parallax",text:"Distance where 1 AU subtends 1 arcsecond. 1 pc = 3.26 ly. kpc = 1000 pc. Mpc = 1 million pc."}
+];
+
+// ============ BOOKMARKS ============
+let bookmarks = JSON.parse(localStorage.getItem('astro-bookmarks') || '[]');
+
+// ============ FUZZY SEARCH ============
+function fuzzyMatch(text, query) {
+    text = text.toLowerCase();
+    query = query.toLowerCase();
+    if (text.includes(query)) return { match: true, score: 100 };
+    let qi = 0, score = 0;
+    for (let ti = 0; ti < text.length && qi < query.length; ti++) {
+        if (text[ti] === query[qi]) { score += 10; qi++; }
+    }
+    return { match: qi === query.length, score };
+}
+
+function search(query) {
+    if (!query || query.length < 2) return [];
+    const terms = query.toLowerCase().split(/\s+/);
+    const results = [];
+
+    for (const item of searchData) {
+        const searchText = `${item.title} ${item.section} ${item.tags} ${item.text}`.toLowerCase();
+        let totalScore = 0;
+        let allMatch = true;
+
+        for (const term of terms) {
+            const fm = fuzzyMatch(searchText, term);
+            if (fm.match) {
+                totalScore += fm.score;
+                if (item.title.toLowerCase().includes(term)) totalScore += 50;
+                if (item.tags.toLowerCase().includes(term)) totalScore += 30;
+            } else {
+                allMatch = false;
+                break;
+            }
+        }
+
+        if (allMatch && totalScore > 0) {
+            results.push({ ...item, score: totalScore });
+        }
+    }
+
+    return results.sort((a, b) => b.score - a.score).slice(0, 20);
+}
+
+function highlightText(text, query) {
+    if (!query) return text;
+    const terms = query.toLowerCase().split(/\s+/);
+    let result = text;
+    for (const term of terms) {
+        if (term.length < 2) continue;
+        const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        result = result.replace(regex, '<mark>$1</mark>');
+    }
+    return result;
+}
+
+function renderResults(results, query) {
+    const container = document.getElementById('results-container');
+    if (results.length === 0) {
+        container.innerHTML = query.length >= 2
+            ? '<p style="color: var(--text2);">No results found. Try different keywords.</p>'
+            : '<p style="color: var(--text2);">Start typing to search across all your notes...</p>';
+        return;
+    }
+
+    container.innerHTML = results.map(r => `
+        <div class="result" data-id="${r.id}">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+                <div class="result-section">${r.section}</div>
+                <button class="bookmark-btn ${bookmarks.includes(r.id) ? 'active' : ''}" onclick="toggleBookmark('${r.id}', event)">&#9733;</button>
+            </div>
+            <div class="result-title">${highlightText(r.title, query)}</div>
+            <div class="result-text">${highlightText(r.text, query)}</div>
+        </div>
+    `).join('');
+
+    document.getElementById('status-text').textContent = `Found ${results.length} results`;
+}
+
+// ============ BOOKMARKS ============
+function toggleBookmark(id, event) {
+    event.stopPropagation();
+    const idx = bookmarks.indexOf(id);
+    if (idx > -1) {
+        bookmarks.splice(idx, 1);
+    } else {
+        bookmarks.push(id);
+    }
+    localStorage.setItem('astro-bookmarks', JSON.stringify(bookmarks));
+    const btn = event.target;
+    btn.classList.toggle('active');
+    updateBookmarksDisplay();
+}
+
+function updateBookmarksDisplay() {
+    const container = document.getElementById('bookmarks-display');
+    if (!container) return;
+    const bookmarked = searchData.filter(d => bookmarks.includes(d.id));
+    if (bookmarked.length === 0) {
+        container.innerHTML = '<p style="color: var(--text2);">No bookmarks yet. Click the star on any result to bookmark it.</p>';
+        return;
+    }
+    container.innerHTML = bookmarked.map(r => `
+        <div class="result" data-id="${r.id}">
+            <div class="result-section">${r.section}</div>
+            <div class="result-title">${r.title}</div>
+            <div class="result-text">${r.text.slice(0, 100)}...</div>
+        </div>
+    `).join('');
+}
+
+// ============ NAVIGATION ============
+function showSection(sectionId) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const section = document.getElementById(sectionId);
+    if (section) {
+        section.classList.add('active');
+        document.querySelector(`[data-section="${sectionId}"]`)?.classList.add('active');
+    }
+
+    if (sectionId === 'bookmarks-section') updateBookmarksDisplay();
+}
+
+// ============ EVENT LISTENERS ============
+const searchInput = document.getElementById('search');
+let searchTimeout;
+
+searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        const query = e.target.value.trim();
+        showSection('search-results');
+        const results = search(query);
+        renderResults(results, query);
+    }, 100);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        searchInput.value = '';
+        renderResults([], '');
+    }
+});
+
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        showSection(item.dataset.section);
+    });
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.target === searchInput) return;
+
+    switch(e.key) {
+        case '/': e.preventDefault(); searchInput.focus(); break;
+        case '?': document.getElementById('shortcuts-modal').classList.add('active'); break;
+        case 'Escape': document.getElementById('shortcuts-modal').classList.remove('active'); break;
+        case 'f': case 'F': showSection('formulas'); break;
+        case 'c': case 'C': showSection('constants'); break;
+        case 'e': case 'E': showSection('exoplanets'); break;
+        case 'h': case 'H': showSection('hr-diagram'); break;
+        case 's': case 'S': showSection('stellar-evolution'); break;
+        case '1': showSection('formulas'); break;
+        case '2': showSection('constants'); break;
+        case '3': showSection('stellar-evolution'); break;
+        case '4': showSection('exoplanets'); break;
+        case '5': showSection('detection'); break;
+        case '6': showSection('orbital'); break;
+        case '7': showSection('nebulae'); break;
+        case '8': showSection('variables'); break;
+        case '9': showSection('supernovae'); break;
+    }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    searchInput.focus();
+    populateSections();
+});
+
+// ============ POPULATE SECTIONS ============
+function populateSections() {
+    // Formulas section
+    document.getElementById('formulas').innerHTML = `
+        <h2>Essential Formulas</h2>
+        <div class="card">
+            <div class="card-title">Distance & Magnitude</div>
+            <div class="qr-formula">d = 1/p <span style="color:var(--text2)">— Parallax (d in pc, p in arcsec)</span></div>
+            <div class="qr-formula">m - M = 5log₁₀(d) - 5 <span style="color:var(--text2)">— Distance Modulus</span></div>
+            <div class="qr-formula">d = 10^((m-M+5)/5) <span style="color:var(--text2)">— Solving for distance (pc)</span></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Kepler's Laws</div>
+            <div class="qr-formula">P² = a³ <span style="color:var(--text2)">— 3rd Law (P years, a AU, 1 solar mass)</span></div>
+            <div class="qr-formula">P² = a³/M <span style="color:var(--text2)">— With different mass</span></div>
+            <div class="qr-formula">M_A + M_B = a³/P² <span style="color:var(--text2)">— Binary systems</span></div>
+            <div class="qr-formula">R_p = a(1-e), R_a = a(1+e) <span style="color:var(--text2)">— Perihelion/Aphelion</span></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Radiation Laws</div>
+            <div class="qr-formula">L = 4πR²σT⁴ <span style="color:var(--text2)">— Stefan-Boltzmann (Luminosity)</span></div>
+            <div class="qr-formula">λ_max = b/T <span style="color:var(--text2)">— Wien's Law (b=2900 μm·K)</span></div>
+            <div class="qr-formula">F = Gm₁m₂/r² <span style="color:var(--text2)">— Newton's Gravitation</span></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Velocity & Motion</div>
+            <div class="qr-formula">v = √(GM/r) <span style="color:var(--text2)">— Orbital velocity</span></div>
+            <div class="qr-formula">v_esc = √(2GM/r) <span style="color:var(--text2)">— Escape velocity</span></div>
+            <div class="qr-formula">v = H₀d <span style="color:var(--text2)">— Hubble's Law (H₀≈70 km/s/Mpc)</span></div>
+        </div>
+        <div class="card">
+            <div class="card-title">Exoplanet Detection</div>
+            <div class="qr-formula">ΔF/F₀ = (R_p/R_s)² <span style="color:var(--text2)">— Transit depth → planet radius</span></div>
+            <div class="qr-formula">T_e = ⁴√(R_s²T_s⁴(1-A)/4D²) <span style="color:var(--text2)">— Planet temperature</span></div>
+        </div>
+    `;
+
+    // Constants section
+    document.getElementById('constants').innerHTML = `
+        <h2>Constants & Units</h2>
+        <div class="card">
+            <div class="card-title">Physical Constants</div>
+            <table>
+                <tr><th>Constant</th><th>Symbol</th><th>Value</th></tr>
+                <tr><td>Gravitational constant</td><td>G</td><td>6.67 × 10⁻¹¹ N·m²/kg²</td></tr>
+                <tr><td>Speed of light</td><td>c</td><td>3 × 10⁸ m/s</td></tr>
+                <tr><td>Stefan-Boltzmann</td><td>σ</td><td>5.67 × 10⁻⁸ W/m²K⁴</td></tr>
+                <tr><td>Wien's constant</td><td>b</td><td>2900 μm·K</td></tr>
+                <tr><td>Hubble constant</td><td>H₀</td><td>~70 km/s/Mpc</td></tr>
+                <tr><td>Chandrasekhar limit</td><td>—</td><td>1.4 M☉</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Distance Units</div>
+            <table>
+                <tr><th>Unit</th><th>Equivalent</th></tr>
+                <tr><td>1 AU</td><td>1.496 × 10⁸ km (Earth-Sun dist)</td></tr>
+                <tr><td>1 parsec (pc)</td><td>3.26 ly = 206,265 AU</td></tr>
+                <tr><td>1 light year (ly)</td><td>9.461 × 10¹² km</td></tr>
+                <tr><td>1 kpc</td><td>1000 pc</td></tr>
+                <tr><td>1 Mpc</td><td>1,000,000 pc</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Solar Units</div>
+            <table>
+                <tr><th>Property</th><th>Symbol</th><th>Value</th></tr>
+                <tr><td>Solar mass</td><td>M☉</td><td>1.989 × 10³⁰ kg</td></tr>
+                <tr><td>Solar radius</td><td>R☉</td><td>6.96 × 10⁸ m</td></tr>
+                <tr><td>Solar luminosity</td><td>L☉</td><td>3.83 × 10²⁶ W</td></tr>
+                <tr><td>Solar temperature</td><td>T☉</td><td>5778 K</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Angular Units</div>
+            <table>
+                <tr><th>Unit</th><th>Equivalent</th></tr>
+                <tr><td>1 degree</td><td>60 arcminutes</td></tr>
+                <tr><td>1 arcminute</td><td>60 arcseconds</td></tr>
+                <tr><td>1 Angstrom (Å)</td><td>10⁻¹⁰ m = 0.1 nm</td></tr>
+            </table>
+        </div>
+    `;
+
+    // Stellar Evolution
+    document.getElementById('stellar-evolution').innerHTML = `
+        <h2>Stellar Evolution</h2>
+        <div class="card">
+            <div class="card-title">Stellar Lifecycle</div>
+            <p style="font-size:14px;background:var(--surface2);padding:12px;border-radius:6px;margin-bottom:12px;">
+                <strong>Molecular Cloud → Protostar → T-Tauri → Main Sequence → Red Giant → Heavier Fusion → Death</strong>
+            </p>
+            <ul>
+                <li><strong>Protostar:</strong> Collapsing gas cloud, no fusion yet</li>
+                <li><strong>T-Tauri:</strong> &lt;2 M☉, pre-main sequence, variable, strong winds</li>
+                <li><strong>Main Sequence:</strong> H → He fusion, stable (most of star's life)</li>
+                <li><strong>Red Giant:</strong> H depleted, expands, He fusion begins</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Main Sequence Lifetimes</div>
+            <table>
+                <tr><th>Mass</th><th>Lifetime</th></tr>
+                <tr><td>~120 M☉ (high mass)</td><td>~2 million years</td></tr>
+                <tr><td>1 M☉ (Sun)</td><td>~10 billion years</td></tr>
+                <tr><td>~0.08 M☉ (low mass)</td><td>~13 billion years</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Stellar Remnants</div>
+            <table>
+                <tr><th>Progenitor</th><th>Core Mass</th><th>Remnant</th></tr>
+                <tr><td>Low mass (&lt;8 M☉)</td><td>&lt;1.4 M☉</td><td>White Dwarf</td></tr>
+                <tr><td>Massive (8-25 M☉)</td><td>1.4-3.2 M☉</td><td>Neutron Star</td></tr>
+                <tr><td>Very massive (&gt;25 M☉)</td><td>&gt;3.2 M☉</td><td>Black Hole</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Young Stellar Objects</div>
+            <ul>
+                <li><strong>Herbig-Haro Objects:</strong> Glowing regions from protostar jets hitting gas</li>
+                <li><strong>Herbig Ae/Be Stars:</strong> 2-8 M☉ pre-main sequence, emission lines</li>
+                <li><strong>Brown Dwarfs:</strong> 13-80 Jupiter masses, no H fusion</li>
+            </ul>
+        </div>
+    `;
+
+    // Classification
+    document.getElementById('stellar-class').innerHTML = `
+        <h2>Stellar Classification</h2>
+        <div class="card">
+            <div class="card-title">Spectral Types (OBAFGKM)</div>
+            <p style="margin-bottom:12px;"><strong>Mnemonic:</strong> Oh Be A Fine Girl/Guy, Kiss Me</p>
+            <table>
+                <tr><th>Type</th><th>Temp (K)</th><th>Color</th><th>H Lines</th></tr>
+                <tr><td><strong>O</strong></td><td>30,000-60,000</td><td>Blue</td><td>Weak</td></tr>
+                <tr><td><strong>B</strong></td><td>10,000-30,000</td><td>Blue-White</td><td>Medium</td></tr>
+                <tr><td><strong>A</strong></td><td>7,500-10,000</td><td>White</td><td>Strong</td></tr>
+                <tr><td><strong>F</strong></td><td>6,000-7,500</td><td>White</td><td>Medium</td></tr>
+                <tr><td><strong>G</strong></td><td>5,000-6,000</td><td>Yellow</td><td>Weak</td></tr>
+                <tr><td><strong>K</strong></td><td>3,500-5,000</td><td>Orange</td><td>Very Weak</td></tr>
+                <tr><td><strong>M</strong></td><td>2,000-3,500</td><td>Red</td><td>Very Weak</td></tr>
+            </table>
+        </div>
+        <div class="card">
+            <div class="card-title">Luminosity Classes (Yerkes)</div>
+            <table>
+                <tr><th>Class</th><th>Type</th></tr>
+                <tr><td>0 / Ia-0</td><td>Hypergiant</td></tr>
+                <tr><td>Ia</td><td>Luminous Supergiant</td></tr>
+                <tr><td>Ib</td><td>Less Luminous Supergiant</td></tr>
+                <tr><td>II</td><td>Bright Giant</td></tr>
+                <tr><td>III</td><td>Giant</td></tr>
+                <tr><td>IV</td><td>Subgiant</td></tr>
+                <tr><td>V</td><td>Main Sequence (Dwarf)</td></tr>
+                <tr><td>D</td><td>White Dwarf</td></tr>
+            </table>
+            <p style="margin-top:10px;font-size:13px;color:var(--text2);">Example: Sun = G2V (G-type, main sequence)</p>
+        </div>
+    `;
+
+    // Exoplanets section
+    document.getElementById('exoplanets').innerHTML = `
+        <h2>Exoplanets Catalog</h2>
+        ${searchData.filter(d => d.section === 'Exoplanets').map(ex => `
+            <div class="card">
+                <div class="card-title">${ex.title}</div>
+                <p style="font-size:13px;">${ex.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    // Detection methods
+    document.getElementById('detection').innerHTML = `
+        <h2>Exoplanet Detection Methods</h2>
+        <div class="card">
+            <div class="card-title">Transit Method</div>
+            <ul>
+                <li>Detects brightness dip when planet crosses in front of star</li>
+                <li><strong>Gives:</strong> Planet RADIUS (from depth), orbital period</li>
+                <li><strong>Formula:</strong> ΔF/F₀ = (R_p/R_s)²</li>
+                <li>Requires inclination ~90°</li>
+                <li>Limb darkening affects light curve shape</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Radial Velocity (Doppler)</div>
+            <ul>
+                <li>Measures star's wobble via spectral shift</li>
+                <li>Blueshift = approaching, Redshift = receding</li>
+                <li><strong>Gives:</strong> MINIMUM MASS (m sin i), period</li>
+                <li>Best for massive, close-in planets (Hot Jupiters)</li>
+                <li>Affected by stellar activity (spots, oscillations)</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Direct Imaging</div>
+            <ul>
+                <li>Photographs exoplanet by blocking starlight</li>
+                <li>Uses coronagraph or starshade</li>
+                <li>Usually infrared (young planets emit heat)</li>
+                <li><strong>Gives:</strong> Temperature, composition, atmosphere</li>
+                <li>Best for young, large planets with wide orbits</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Method Comparison</div>
+            <table>
+                <tr><th>Method</th><th>Measures</th><th>Best For</th></tr>
+                <tr><td>Transit</td><td>Radius</td><td>Aligned orbits</td></tr>
+                <tr><td>Radial Velocity</td><td>Min Mass</td><td>Close-in massive</td></tr>
+                <tr><td>Direct Imaging</td><td>Atmosphere</td><td>Young, wide orbit</td></tr>
+                <tr><td>Transit + RV</td><td>Density</td><td>Full characterization</td></tr>
+            </table>
+        </div>
+    `;
+
+    // Populate remaining sections similarly
+    document.getElementById('hr-diagram').innerHTML = `
+        <h2>H-R Diagram</h2>
+        <div class="card">
+            <div class="card-title">Diagram Overview</div>
+            <ul>
+                <li><strong>X-axis:</strong> Temperature (hot O-type left → cool M-type right)</li>
+                <li><strong>Y-axis:</strong> Luminosity (dim bottom → bright top)</li>
+                <li>Developed 1914 by Hertzsprung & Russell</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Regions</div>
+            <ul>
+                <li><strong>Main Sequence:</strong> Diagonal band, H fusion (most stars)</li>
+                <li><strong>Giants/Supergiants:</strong> Upper right, cool but luminous</li>
+                <li><strong>White Dwarfs:</strong> Lower left, hot but dim</li>
+            </ul>
+        </div>
+        <div class="card">
+            <div class="card-title">Magnitude Scale</div>
+            <p>-10 mag = 1 million× brighter than Sun</p>
+            <p>+20 mag = 1 million× dimmer than Sun</p>
+            <p>Each 5 magnitudes = 100× brightness difference</p>
+        </div>
+    `;
+
+    document.getElementById('orbital').innerHTML = `
+        <h2>Orbital Mechanics</h2>
+        ${searchData.filter(d => d.section === 'Orbital Mechanics').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('distance').innerHTML = `
+        <h2>Distance Methods</h2>
+        ${searchData.filter(d => d.section === 'Distance Methods').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('spectroscopy').innerHTML = `
+        <h2>Spectroscopy</h2>
+        ${searchData.filter(d => d.section === 'Spectroscopy').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('nebulae').innerHTML = `
+        <h2>Nebulae</h2>
+        ${searchData.filter(d => d.section === 'Nebulae').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('variables').innerHTML = `
+        <h2>Variable Stars</h2>
+        ${searchData.filter(d => d.section === 'Variable Stars').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('supernovae').innerHTML = `
+        <h2>Supernovae</h2>
+        ${searchData.filter(d => d.section === 'Supernovae').map(item => `
+            <div class="card">
+                <div class="card-title">${item.title}</div>
+                <p style="font-size:13px;">${item.text}</p>
+            </div>
+        `).join('')}
+    `;
+
+    document.getElementById('dso').innerHTML = `
+        <h2>DSO Quick Reference</h2>
+        <div class="card">
+            <div class="card-title">Orion Nebula (M42)</div>
+            <div class="card-grid">
+                <div class="card-stat"><div class="card-stat-label">Distance</div><div class="card-stat-value">1,344 ly</div></div>
+                <div class="card-stat"><div class="card-stat-label">Magnitude</div><div class="card-stat-value">+4.0</div></div>
+                <div class="card-stat"><div class="card-stat-label">Size</div><div class="card-stat-value">24 ly</div></div>
+                <div class="card-stat"><div class="card-stat-label">Type</div><div class="card-stat-value">H II / Diffuse</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Tarantula Nebula (30 Doradus)</div>
+            <div class="card-grid">
+                <div class="card-stat"><div class="card-stat-label">Distance</div><div class="card-stat-value">160,000 ly</div></div>
+                <div class="card-stat"><div class="card-stat-label">Location</div><div class="card-stat-value">LMC</div></div>
+                <div class="card-stat"><div class="card-stat-label">Size</div><div class="card-stat-value">~1000 ly</div></div>
+                <div class="card-stat"><div class="card-stat-label">Key Object</div><div class="card-stat-value">R136 cluster</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">Carina Nebula (NGC 3372)</div>
+            <div class="card-grid">
+                <div class="card-stat"><div class="card-stat-label">Type</div><div class="card-stat-value">Star-forming</div></div>
+                <div class="card-stat"><div class="card-stat-label">Features</div><div class="card-stat-value">Emission + Reflection</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">NGC 1333</div>
+            <div class="card-grid">
+                <div class="card-stat"><div class="card-stat-label">Distance</div><div class="card-stat-value">~1000 ly</div></div>
+                <div class="card-stat"><div class="card-stat-label">Constellation</div><div class="card-stat-value">Perseus</div></div>
+                <div class="card-stat"><div class="card-stat-label">Type</div><div class="card-stat-value">Reflection</div></div>
+                <div class="card-stat"><div class="card-stat-label">Notable</div><div class="card-stat-value">HH 7-11</div></div>
+            </div>
+        </div>
+    `;
+}
+</script>
+</body>
+</html>
